@@ -1,0 +1,8 @@
+# 보너스 과제 
+os:True
+os_version:False
+cpu_type:True
+cpu_cores:True
+memory_size_gb:True
+cpu_usage_percent:True
+memory_usage_percent:True

@@ -1,63 +1,72 @@
-import random
-from datetime import datetime  # 표준 라이브러리 (사용 가능)
+import platform
+import json
+import os
 
-class DummySensor:
-    """화성 기지의 환경 데이터를 시뮬레이션하는 더미 센서 클래스"""
-
+class MissionComputer:
     def __init__(self):
-        # 멤버 변수 초기화 (사전 객체)
-        self.env_values = {
-            "mars_base_internal_temperature": 0.0,
-            "mars_base_external_temperature": 0.0,
-            "mars_base_internal_humidity": 0.0,
-            "mars_base_external_illuminance": 0.0,
-            "mars_base_internal_co2": 0.0,
-            "mars_base_internal_oxygen": 0.0
-        }
+        self.name = "Mars Mission Control Computer"
+        self.settings = self._load_settings()
 
-    def set_env(self):
-        """요구사항에 명시된 범위 내에서 무작위 환경 값을 생성하여 저장"""
-        self.env_values["mars_base_internal_temperature"] = random.uniform(18, 30)
-        self.env_values["mars_base_external_temperature"] = random.uniform(0, 21)
-        self.env_values["mars_base_internal_humidity"] = random.uniform(50, 60)
-        self.env_values["mars_base_external_illuminance"] = random.uniform(500, 715)
-        self.env_values["mars_base_internal_co2"] = random.uniform(0.02, 0.1)
-        self.env_values["mars_base_internal_oxygen"] = random.uniform(4, 7)
+    def _load_settings(self):
+        """setting.txt 파일을 읽어 출력 항목 설정을 로드합니다."""
+        settings = {}
+        try:
+            if os.path.exists("setting.txt"):
+                with open("setting.txt", "r") as f:
+                    for line in f:
+                        if ":" in line:
+                            key, value = line.strip().split(":")
+                            settings[key] = value.lower() == "true"
+            else:
+                print("경고: setting.txt 파일이 없어 모든 항목을 출력합니다.")
+        except Exception as e:
+            print(f"설정 파일 로드 중 오류 발생: {e}")
+        return settings
 
-    def get_env(self):
-        """현재 환경 값을 반환하고 로그 파일에 기록"""
-        # 현재 시간 생성 (표준 라이브러리 활용)
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
-        # 로그 문자열 구성 (PEP 8에 따라 한 줄이 너무 길지 않게 관리)
-        log_msg = (
-            f"[{now}] "
-            f"In_Temp: {self.env_values['mars_base_internal_temperature']:.2f}, "
-            f"Ex_Temp: {self.env_values['mars_base_external_temperature']:.2f}, "
-            f"In_Hum: {self.env_values['mars_base_internal_humidity']:.2f}, "
-            f"Ex_Illu: {self.env_values['mars_base_external_illuminance']:.2f}, "
-            f"In_CO2: {self.env_values['mars_base_internal_co2']:.4f}, "
-            f"In_O2: {self.env_values['mars_base_internal_oxygen']:.2f}\n"
-        )
-        
-        # 파일 출력 (별도 패키지 설치 없이 내장함수 open 사용)
-        with open("mars_log.txt", "a", encoding="utf-8") as f:
-            f.write(log_msg)
+     #메소드 이름 
+    def get_mission_computer_info(self):
+        """운영체제, CPU, 메모리 등 정적 시스템 정보를 반환합니다."""
+        try:
+            import psutil
+            full_info = {
+                "os": platform.system(),
+                "os_version": platform.version(),
+                "cpu_type": platform.processor(),
+                "cpu_cores": psutil.cpu_count(logical=True),
+                "memory_size_gb": round(psutil.virtual_memory().total / (1024**3), 2)
+            }
             
-        return self.env_values
+            # 설정(settings)에 True로 된 항목만 필터링
+            filtered_info = {k: v for k, v in full_info.items() if self.settings.get(k, True)}
+            
+            print("\n=== Mission Computer System Info ===")
+            print(json.dumps(filtered_info, indent=4))
+            return filtered_info
+        except Exception as e:
+            print(f"시스템 정보를 가져오는 중 오류 발생: {e}")
+            return None
 
+    def get_mission_computer_load(self):
+        """CPU와 메모리의 실시간 사용량을 반환합니다."""
+        try:
+            import psutil
+            full_load = {
+                "cpu_usage_percent": psutil.cpu_percent(interval=1),
+                "memory_usage_percent": psutil.virtual_memory().percent
+            }
+            
+            # 설정(settings)에 True로 된 항목만 필터링
+            filtered_load = {k: v for k, v in full_load.items() if self.settings.get(k, True)}
+            
+            print("\n=== Mission Computer Real-time Load ===")
+            print(json.dumps(filtered_load, indent=4))
+            return filtered_load
+        except Exception as e:
+            print(f"부하 정보를 가져오는 중 오류 발생: {e}")
+            return None
 
-# 메인 실행부 (인스턴스 생성 및 테스트)
+# 인스턴스화 및 실행
 if __name__ == "__main__":
-    # 클래스 인스턴스 생성
-    ds = DummySensor()
-    
-    # 순차적 메서드 호출
-    ds.set_env()
-    data = ds.get_env()
-
-    # 결과 확인 출력
-    print("--- Mission Computer: Environment Data ---")
-    for key, value in data.items():
-        print(f"{key}: {value:.4f}")
-    print("\nData has been successfully logged to 'mars_log.txt'.")
+    runComputer = MissionComputer()
+    runComputer.get_mission_computer_info()
+    runComputer.get_mission_computer_load()
